@@ -7,24 +7,16 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # DEVICE = "cpu"
 
 # NB:
-# if you modify any of these 4 variables, you will need to
-# regenerate the dataset!
-NMAX = 60
-NSTEPS = 45
-CROP_STEP = 10
-NFEATURES = 4
+# data set variable
+IMG_SIZE = 100
+
 # ------------------------
 
 RANDOM_JITTER = True
 RANDOM_SUBSAMPLE = False
 
 # Network parameters
-POINTNET_OUT_DIM = 1024
-DTC_FILTERS = [16, 32, 64, 128, 256, 512]
-UNSUP_LATENT_DIM = 128
-SUP_LATENT_DIM = 64
 
-DEC_MLP_SIZE = NSTEPS * NMAX * NFEATURES
 
 # Training parameters
 LR = 1e-4
