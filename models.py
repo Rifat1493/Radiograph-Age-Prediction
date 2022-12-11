@@ -2,9 +2,11 @@ from tensorflow.keras.layers import Dense, Input, Conv2D, MaxPool2D, Flatten
 from tensorflow.keras.models import Model
 import hparams
 
-class AutoEncoder():
+
+class AutoEncoder:
     """def __init__(self, img_shape):
     self.img_shape = img_shape"""
+
     @staticmethod
     def auto_encoder():
         """
@@ -41,4 +43,3 @@ class AutoEncoder():
         model = Model(inputs=inputs, outputs=out)
 
         return model
-

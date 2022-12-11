@@ -3,12 +3,10 @@ import numpy as np
 import cv2
 import tensorflow as tf
 import hparams
-from tensorflow.keras.callbacks import (
-    TensorBoard,
-    ModelCheckpoint,
-    EarlyStopping,
-    ReduceLROnPlateau,
-)
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
+import wandb
+from wandb.keras import WandbCallback
+
 
 
 def load_image(img_name):
@@ -71,6 +69,9 @@ def create_dataset(file_names, labels, batch_size, shuffle, cache_file=None):
 
 def train_model(model, train_dataset, val_dataset, train_steps, val_steps):
 
+    wandb.init(project=hparams.PROJECT_NAME, entity="hda-project")
+    wandb.config.update(hparams.CONFIG)
+
     # early stopping
     early_stopping = EarlyStopping(
         monitor="val_loss", min_delta=0, patience=5, verbose=0, mode="auto"
@@ -78,7 +79,7 @@ def train_model(model, train_dataset, val_dataset, train_steps, val_steps):
 
     # model checkpoint
     mc = ModelCheckpoint(
-        "/data/artifact/best_model.h5",
+        "data/artifact/best_model.h5",
         monitor="val_loss",
         mode="min",
         save_best_only=True,
@@ -100,7 +101,7 @@ def train_model(model, train_dataset, val_dataset, train_steps, val_steps):
         min_lr=0,
     )
 
-    callbacks = [early_stopping, mc, red_lr_plat]
+    callbacks = [early_stopping, mc, red_lr_plat, WandbCallback()]
 
     # fit model
     history = model.fit(
@@ -108,8 +109,7 @@ def train_model(model, train_dataset, val_dataset, train_steps, val_steps):
         steps_per_epoch=train_steps,
         validation_data=val_dataset,
         validation_steps=val_steps,
-        epochs=50,
+        epochs=hparams.EPOCHS,
         callbacks=callbacks,
     )
-
     return history
