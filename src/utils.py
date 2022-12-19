@@ -1,11 +1,14 @@
 import os
-import numpy as np
+
 import cv2
+import numpy as np
 import tensorflow as tf
+from hparams import *
 import hparams
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 import wandb
-from wandb.keras import WandbCallback
+import random
+from wandb.keras import WandbCallback, WandbModelCheckpoint
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
 
 
@@ -16,7 +19,7 @@ def load_image(img_name):
 
     img = cv2.imread(img_name, cv2.IMREAD_COLOR)
     img = np.array(
-        cv2.resize(img, (hparams.IMG_SIZE, hparams.IMG_SIZE)), dtype="float32"
+        cv2.resize(img, (IMG_SIZE, IMG_SIZE)), dtype="float32"
     )
 
     return img
@@ -24,6 +27,13 @@ def load_image(img_name):
 
 def normalize_img(image):
     return tf.cast(image, tf.float32) / 255.0
+
+
+def set_seeds(seed):
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    random.seed(seed)
+    tf.random.set_seed(seed)
+    np.random.seed(seed)
 
 
 def create_dataset(file_names, labels, batch_size, shuffle, cache_file=None):
@@ -69,17 +79,21 @@ def create_dataset(file_names, labels, batch_size, shuffle, cache_file=None):
 
 def train_model(model, train_dataset, val_dataset, train_steps, val_steps):
 
-    wandb.init(project=hparams.PROJECT_NAME, entity="hda-project")
-    wandb.config.update(hparams.CONFIG)
+    if INIT_WB:
+        wandb.init(
+            project=PROJECT_NAME, entity="hda-project"  # ,name=hparams.MODEL_NAME
+        )
+        wandb.config.update(CONFIG)
 
     # early stopping
+    # patience=5
     early_stopping = EarlyStopping(
-        monitor="val_loss", min_delta=0, patience=5, verbose=0, mode="auto"
+        monitor="val_loss", min_delta=0, patience=7, verbose=0, mode="min"
     )
 
     # model checkpoint
     mc = ModelCheckpoint(
-        "data/artifact/best_model.h5",
+        "../data/artifact/" + MODEL_NAME + ".h5",
         monitor="val_loss",
         mode="min",
         save_best_only=True,
@@ -95,16 +109,19 @@ def train_model(model, train_dataset, val_dataset, train_steps, val_steps):
         factor=0.1,
         patience=10,
         verbose=0,
-        mode="auto",
+        mode="min",
         min_delta=0.0001,
         cooldown=0,
         min_lr=0,
     )
 
-    callbacks = [early_stopping, mc, red_lr_plat, WandbCallback()]
-
+    if INIT_WB:
+        callbacks = [early_stopping, mc, red_lr_plat, WandbCallback(mode="min")]
+    else:
+        callbacks = [early_stopping, mc, red_lr_plat]
+    
     # fit model
-    history = model.fit(
+    history = model.fit_generator(
         train_dataset,
         steps_per_epoch=train_steps,
         validation_data=val_dataset,

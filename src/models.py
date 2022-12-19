@@ -1,4 +1,3 @@
-
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Input, Conv2D, MaxPool2D, Flatten, Add, Activation, ZeroPadding2D, \
                                     BatchNormalization, AveragePooling2D, GlobalMaxPooling2D, Dropout
@@ -6,46 +5,71 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.initializers import glorot_uniform
 import hparams
 from typing import Tuple
+from layers2D import *
 
 
-class AutoEncoder:
-    """def __init__(self, img_shape):
-    self.img_shape = img_shape"""
-
+class BaselineCnn:
     @staticmethod
-    def auto_encoder():
-        """
-        Arguments:
-        img_shape_x -- size of the input layer
-        code_size -- the size of the hidden representation of the input (code)
+    def baseline_cnn():
 
-        Returns:
-        encoder -- keras model for the encoder network
-        decoder -- keras model for the decoder network
-        """
+        n_filters = 16
+        batchnorm = BATCH_NORM
 
-        # encoder
+        inputs = Input(shape=(IMG_SIZE, IMG_SIZE, 3))
 
-        inputs = Input(shape=(hparams.IMG_SIZE, hparams.IMG_SIZE, 3))
+        c0 = conv2d_block(
+            inputs, n_filters=n_filters, batchnorm=batchnorm, strides=1, recurrent=1
+        )
+        c1 = conv2d_block(
+            c0, n_filters=n_filters * 2, batchnorm=batchnorm, strides=2, recurrent=1
+        )
+        c2 = conv2d_block(
+            c1, n_filters=n_filters * 4, batchnorm=batchnorm, strides=2, recurrent=1
+        )
+        c3 = conv2d_block(
+            c2, n_filters=n_filters * 8, batchnorm=batchnorm, strides=2, recurrent=1
+        )
+        c4 = conv2d_block(
+            c3, n_filters=n_filters * 16, batchnorm=batchnorm, strides=2, recurrent=1
+        )
 
-        y = Conv2D(32, (3, 3), activation="elu", padding="same")(inputs)
-        y = MaxPool2D((2, 2), padding="same")(y)
+        d1 = Flatten()(c4)
+        d2 = Dense(16, activation="elu")(d1)
+        out = Dense(1, activation="linear")(d2)
+        model = Model(inputs=[inputs], outputs=[out])
 
-        y = Conv2D(64, (3, 3), activation="elu", padding="same")(y)
-        y = MaxPool2D((2, 2), padding="same")(y)
+        return model
 
-        y = Conv2D(128, (3, 3), activation="elu", padding="same")(y)
-        y = MaxPool2D((2, 2), padding="same")(y)
 
-        y = Conv2D(256, (3, 3), activation="elu", padding="same")(y)
-        y = MaxPool2D((2, 2), padding="same")(y)
+class BaselineCnnAttention:
+    @staticmethod
+    def baseline_cnn_attention():
+        n_filters = 16
+        batchnorm = BATCH_NORM
 
-        y = Flatten()(y)
+        inputs = Input(shape=(IMG_SIZE, IMG_SIZE, 3))
 
-        y = Dense(10, activation="elu")(y)
-        out = Dense(1, activation="linear")(y)
+        c0 = conv2d_block(
+            inputs, n_filters=n_filters, batchnorm=batchnorm, strides=1, recurrent=2
+        )
+        c1 = conv2d_block(
+            c0, n_filters=n_filters * 2, batchnorm=batchnorm, strides=2, recurrent=2
+        )
+        c2 = conv2d_block(
+            c1, n_filters=n_filters * 4, batchnorm=batchnorm, strides=2, recurrent=2
+        )
+        c3 = conv2d_block(
+            c2, n_filters=n_filters * 8, batchnorm=batchnorm, strides=2, recurrent=2
+        )
+        ao = attn_gate_block(c2, c3, n_filters * 8)
+        c4 = conv2d_block(
+            ao, n_filters=n_filters * 16, batchnorm=batchnorm, strides=2, recurrent=2
+        )
 
-        model = Model(inputs=inputs, outputs=out)
+        d1 = Flatten()(c4)
+        d2 = Dense(16, activation="elu")(d1)
+        out = Dense(1, activation="linear")(d2)
+        model = Model(inputs=[inputs], outputs=[out])
 
         return model
 
@@ -393,4 +417,23 @@ class Inception:
         X = tf.concat(values=[branch1, branch2, branch3], axis=3)
                 
         return X
+
+
+class Unet:
+    @staticmethod
+    def unet():
+
+        print("hi")
+
+
+class ResidualAttentionUnet:
+    @staticmethod
+    def residual_attention_unet():
+        print("hello")
+
+
+class InceptionAttentionUnet:
+    @staticmethod
+    def inception_attention_unet():
+        print("hello")
 

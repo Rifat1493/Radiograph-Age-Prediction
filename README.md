@@ -14,4 +14,11 @@ Project for Predicting Bone age using hand/ wrist Radiographs.
 - Inception NN
 - Attention NN
 
+### Rifat
+- attention (256 size vs 1024)
+- attention+gender
+- best encoder vs pca
+- encoder+attention
+- encoder+attention+ gender
+
 
