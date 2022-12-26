@@ -1,15 +1,14 @@
 import os
+import random
 
 import cv2
 import numpy as np
 import tensorflow as tf
-from hparams import *
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+from wandb.keras import WandbCallback
+
 import hparams
 import wandb
-import random
-from wandb.keras import WandbCallback, WandbModelCheckpoint
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
-
 
 
 def load_image(img_name):
@@ -18,9 +17,7 @@ def load_image(img_name):
         img_name = img_name.decode()
 
     img = cv2.imread(img_name, cv2.IMREAD_COLOR)
-    img = np.array(
-        cv2.resize(img, (IMG_SIZE, IMG_SIZE)), dtype="float32"
-    )
+    img = np.array(cv2.resize(img, (IMG_SIZE, IMG_SIZE)), dtype="float32")
 
     return img
 
@@ -30,7 +27,7 @@ def normalize_img(image):
 
 
 def set_seeds(seed):
-    os.environ['PYTHONHASHSEED'] = str(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     tf.random.set_seed(seed)
     np.random.seed(seed)
@@ -78,22 +75,29 @@ def create_dataset(file_names, labels, batch_size, shuffle, cache_file=None):
 
 
 def train_model(model, train_dataset, val_dataset, train_steps, val_steps):
+    if hparams.GENDER:
+        model_name = hparams.MODEL_NAME+"_gender"
+    else:
+        model_name = hparams.MODEL_NAME
 
-    if INIT_WB:
+    if hparams.INIT_WB:
         wandb.init(
-            project=PROJECT_NAME, entity="hda-project"  # ,name=hparams.MODEL_NAME
+            project=hparams.PROJECT_NAME,
+            entity="hda-project",
+            name=model_name
+            # notes=hparams.NOTES
         )
-        wandb.config.update(CONFIG)
+        wandb.config.update(hparams.CONFIG)
 
     # early stopping
     # patience=5
     early_stopping = EarlyStopping(
-        monitor="val_loss", min_delta=0, patience=7, verbose=0, mode="min"
+        monitor="val_loss", min_delta=0, patience=hparams.PATIENCE, verbose=0, mode="min"
     )
 
     # model checkpoint
     mc = ModelCheckpoint(
-        "../data/artifact/" + MODEL_NAME + ".h5",
+        "../data/artifact/" + hparams.MODEL_NAME + ".h5",
         monitor="val_loss",
         mode="min",
         save_best_only=True,
@@ -115,11 +119,17 @@ def train_model(model, train_dataset, val_dataset, train_steps, val_steps):
         min_lr=0,
     )
 
-    if INIT_WB:
-        callbacks = [early_stopping, mc, red_lr_plat, WandbCallback(mode="min")]
+    if hparams.INIT_WB:
+        callbacks = [
+            early_stopping,
+            mc,
+            red_lr_plat,
+            WandbCallback(mode="min", save_model=False),
+        ]
+
     else:
         callbacks = [early_stopping, mc, red_lr_plat]
-    
+
     # fit model
     history = model.fit_generator(
         train_dataset,
