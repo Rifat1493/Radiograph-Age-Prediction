@@ -74,17 +74,29 @@ def create_dataset(file_names, labels, batch_size, shuffle, cache_file=None):
     return dataset
 
 
-def train_model(model, train_dataset, val_dataset, train_steps, val_steps):
-    if hparams.GENDER:
-        model_name = hparams.MODEL_NAME+"_gender"
-    else:
-        model_name = hparams.MODEL_NAME
+def train_model(
+    model,
+    train_dataset=None,
+    val_dataset=None,
+    train_steps=None,
+    val_steps=None,
+    train_x=None,
+    train_y=None,
+    val_x=None,
+    val_y=None,
+    gend_train_x=None,
+    gend_val_x=None
+):
+    # if hparams.GENDER:
+    #     model_name = hparams.MODEL_NAME + "_gender"
+    # else:
+    #     model_name = hparams.MODEL_NAME
 
     if hparams.INIT_WB:
         wandb.init(
             project=hparams.PROJECT_NAME,
             entity="hda-project",
-            name=model_name
+            name=hparams.MODEL_NAME
             # notes=hparams.NOTES
         )
         wandb.config.update(hparams.CONFIG)
@@ -92,7 +104,11 @@ def train_model(model, train_dataset, val_dataset, train_steps, val_steps):
     # early stopping
     # patience=5
     early_stopping = EarlyStopping(
-        monitor="val_loss", min_delta=0, patience=hparams.PATIENCE, verbose=0, mode="min"
+        monitor="val_loss",
+        min_delta=0,
+        patience=hparams.PATIENCE,
+        verbose=0,
+        mode="min",
     )
 
     # model checkpoint
@@ -131,12 +147,29 @@ def train_model(model, train_dataset, val_dataset, train_steps, val_steps):
         callbacks = [early_stopping, mc, red_lr_plat]
 
     # fit model
-    history = model.fit_generator(
-        train_dataset,
-        steps_per_epoch=train_steps,
-        validation_data=val_dataset,
-        validation_steps=val_steps,
-        epochs=hparams.EPOCHS,
-        callbacks=callbacks,
-    )
+
+    if hparams.GENDER:
+        history = model.fit(
+            x=[train_x, gend_train_x],
+            y=train_y,
+            batch_size=hparams.BATCH_SIZE,
+            epochs=hparams.EPOCHS,
+            callbacks=callbacks,
+            validation_data=([val_x, gend_val_x], val_y),
+            steps_per_epoch=train_steps,
+            validation_steps=val_steps,
+            use_multiprocessing=True
+        )
+
+    else:
+
+        history = model.fit_generator(
+            train_dataset,
+            steps_per_epoch=train_steps,
+            validation_data=val_dataset,
+            validation_steps=val_steps,
+            epochs=hparams.EPOCHS,
+            callbacks=callbacks,
+        )
+
     return history

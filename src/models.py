@@ -19,25 +19,54 @@ class BaselineCnn:
         inputs = Input(shape=(hparams.IMG_SIZE, hparams.IMG_SIZE, 3))
 
         c0 = conv2d_block(
-            inputs, n_filters=n_filters, batchnorm=batchnorm, strides=1, recurrent=hparams.RECURRENT
+            inputs,
+            n_filters=n_filters,
+            batchnorm=batchnorm,
+            strides=1,
+            recurrent=hparams.RECURRENT,
         )
         c1 = conv2d_block(
-            c0, n_filters=n_filters * 2, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+            c0,
+            n_filters=n_filters * 2,
+            batchnorm=batchnorm,
+            strides=2,
+            recurrent=hparams.RECURRENT,
         )
         c2 = conv2d_block(
-            c1, n_filters=n_filters * 4, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+            c1,
+            n_filters=n_filters * 4,
+            batchnorm=batchnorm,
+            strides=2,
+            recurrent=hparams.RECURRENT,
         )
         c3 = conv2d_block(
-            c2, n_filters=n_filters * 8, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+            c2,
+            n_filters=n_filters * 8,
+            batchnorm=batchnorm,
+            strides=2,
+            recurrent=hparams.RECURRENT,
         )
         c4 = conv2d_block(
-            c3, n_filters=n_filters * 16, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+            c3,
+            n_filters=n_filters * 16,
+            batchnorm=batchnorm,
+            strides=2,
+            recurrent=hparams.RECURRENT,
         )
 
         d1 = Flatten()(c4)
         d2 = Dense(16, activation=hparams.HID_ACT_FUNC)(d1)
-        out = Dense(1, activation="linear")(d2)
-        model = Model(inputs=[inputs], outputs=[out])
+
+        if hparams.GENDER:
+            gd_input = Input(shape=(1,))
+            gd_d1 = Dense(16, activation=hparams.HID_ACT_FUNC)(gd_input)
+            d1_d2 = concatenate([d2, gd_d1])
+
+            out = Dense(1, activation="linear")(d1_d2)
+            model = Model(inputs=[inputs, gd_input], outputs=[out])
+        else:
+            out = Dense(1, activation="linear")(d2)
+            model = Model(inputs=[inputs], outputs=[out])
 
         return model
 
@@ -55,16 +84,32 @@ class BaselineCnnAttention:
         if sub_model_no == 1:
 
             c0 = conv2d_block(
-                inputs, n_filters=n_filters, batchnorm=batchnorm, strides=1, recurrent=hparams.RECURRENT
+                inputs,
+                n_filters=n_filters,
+                batchnorm=batchnorm,
+                strides=1,
+                recurrent=hparams.RECURRENT,
             )
             c1 = conv2d_block(
-                c0, n_filters=n_filters * 2, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c0,
+                n_filters=n_filters * 2,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
             c2 = conv2d_block(
-                c1, n_filters=n_filters * 4, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c1,
+                n_filters=n_filters * 4,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
             c3 = conv2d_block(
-                c2, n_filters=n_filters * 8, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c2,
+                n_filters=n_filters * 8,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
 
             c4 = conv2d_block(
@@ -79,16 +124,32 @@ class BaselineCnnAttention:
 
         elif sub_model_no == 2:
             c0 = conv2d_block(
-                inputs, n_filters=n_filters, batchnorm=batchnorm, strides=1, recurrent=hparams.RECURRENT
+                inputs,
+                n_filters=n_filters,
+                batchnorm=batchnorm,
+                strides=1,
+                recurrent=hparams.RECURRENT,
             )
             c1 = conv2d_block(
-                c0, n_filters=n_filters * 2, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c0,
+                n_filters=n_filters * 2,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
             c2 = conv2d_block(
-                c1, n_filters=n_filters * 4, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c1,
+                n_filters=n_filters * 4,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
             c3 = conv2d_block(
-                c2, n_filters=n_filters * 8, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c2,
+                n_filters=n_filters * 8,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
             a0 = attn_gate_block(c2, c3, n_filters * 8)
             c4 = conv2d_block(
@@ -102,21 +163,37 @@ class BaselineCnnAttention:
 
         elif sub_model_no == 3:
             c0 = conv2d_block(
-                inputs, n_filters=n_filters, batchnorm=batchnorm, strides=1, recurrent=hparams.RECURRENT
+                inputs,
+                n_filters=n_filters,
+                batchnorm=batchnorm,
+                strides=1,
+                recurrent=hparams.RECURRENT,
             )
             c1 = conv2d_block(
-                c0, n_filters=n_filters * 2, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c0,
+                n_filters=n_filters * 2,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
 
             a0 = attn_gate_block(c0, c1, n_filters * 2)
             c2 = conv2d_block(
-                c1, n_filters=n_filters * 4, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c1,
+                n_filters=n_filters * 4,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
 
             a1 = attn_gate_block(a0, c2, n_filters * 4)
 
             c3 = conv2d_block(
-                c2, n_filters=n_filters * 8, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c2,
+                n_filters=n_filters * 8,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
 
             a2 = attn_gate_block(a1, c3, n_filters * 8)
@@ -132,21 +209,37 @@ class BaselineCnnAttention:
 
         elif sub_model_no == 4:
             c0 = conv2d_block(
-                inputs, n_filters=n_filters, batchnorm=batchnorm, strides=1, recurrent=hparams.RECURRENT
+                inputs,
+                n_filters=n_filters,
+                batchnorm=batchnorm,
+                strides=1,
+                recurrent=hparams.RECURRENT,
             )
             c1 = conv2d_block(
-                c0, n_filters=n_filters * 2, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c0,
+                n_filters=n_filters * 2,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
 
             a0 = attn_gate_block(c0, c1, n_filters * 2)
             c2 = conv2d_block(
-                c1, n_filters=n_filters * 4, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c1,
+                n_filters=n_filters * 4,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
 
             a1 = attn_gate_block(a0, c2, n_filters * 4)
 
             c3 = conv2d_block(
-                c2, n_filters=n_filters * 8, batchnorm=batchnorm, strides=2, recurrent=hparams.RECURRENT
+                c2,
+                n_filters=n_filters * 8,
+                batchnorm=batchnorm,
+                strides=2,
+                recurrent=hparams.RECURRENT,
             )
 
             a2 = attn_gate_block(a1, c3, n_filters * 8)
@@ -162,8 +255,18 @@ class BaselineCnnAttention:
 
         d1 = Flatten()(s_c4)
         d2 = Dense(16, activation=hparams.HID_ACT_FUNC)(d1)
-        out = Dense(1, activation="linear")(d2)
-        model = Model(inputs=[inputs], outputs=[out])
+
+        if hparams.GENDER:
+            gd_input = Input(shape=(1,))
+            gd_d1 = Dense(16, activation=hparams.HID_ACT_FUNC)(gd_input)
+            d1_d2 = concatenate([d2, gd_d1])
+
+            out = Dense(1, activation="linear")(d1_d2)
+            model = Model(inputs=[inputs, gd_input], outputs=[out])
+        else:
+            out = Dense(1, activation="linear")(d2)
+            model = Model(inputs=[inputs], outputs=[out])
+
 
         return model
 
@@ -1056,8 +1159,16 @@ class Unet:
 
         d1 = Flatten()(c9)
         d2 = Dense(16, activation=hparams.HID_ACT_FUNC)(d1)
-        out = Dense(1, activation="linear")(d2)
-        model = Model(inputs=[inputs], outputs=[out])
+        if hparams.GENDER:
+            gd_input = Input(shape=(1,))
+            gd_d1 = Dense(16, activation=hparams.HID_ACT_FUNC)(gd_input)
+            d1_d2 = concatenate([d2, gd_d1])
+
+            out = Dense(1, activation="linear")(d1_d2)
+            model = Model(inputs=[inputs, gd_input], outputs=[out])
+        else:
+            out = Dense(1, activation="linear")(d2)
+            model = Model(inputs=[inputs], outputs=[out])
 
         return model
 
@@ -1117,21 +1228,37 @@ class ResidualAttentionUnet:
 
         attn0 = attn_gate_block(c3, b0, n_filters * 16)
         u0 = transpose_block(
-            b0, attn0, n_filters=n_filters * 8, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            b0,
+            attn0,
+            n_filters=n_filters * 8,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 64x64x64
 
         attn1 = attn_gate_block(c2, u0, n_filters * 8)
         u1 = transpose_block(
-            u0, attn1, n_filters=n_filters * 4, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            u0,
+            attn1,
+            n_filters=n_filters * 4,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 128x128x128
 
         attn2 = attn_gate_block(c1, u1, n_filters * 4)
         u2 = transpose_block(
-            u1, attn2, n_filters=n_filters * 2, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            u1,
+            attn2,
+            n_filters=n_filters * 2,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 256x256x256
 
         u3 = transpose_block(
-            u2, c0, n_filters=n_filters, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            u2,
+            c0,
+            n_filters=n_filters,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 512x512x512
 
         c9 = Conv2D(
@@ -1143,8 +1270,16 @@ class ResidualAttentionUnet:
         )(u3)
         d1 = Flatten()(c9)
         d2 = Dense(16, activation=hparams.HID_ACT_FUNC)(d1)
-        out = Dense(1, activation="linear")(d2)
-        model = Model(inputs=[inputs], outputs=[out])
+        if hparams.GENDER:
+            gd_input = Input(shape=(1,))
+            gd_d1 = Dense(16, activation=hparams.HID_ACT_FUNC)(gd_input)
+            d1_d2 = concatenate([d2, gd_d1])
+
+            out = Dense(1, activation="linear")(d1_d2)
+            model = Model(inputs=[inputs, gd_input], outputs=[out])
+        else:
+            out = Dense(1, activation="linear")(d2)
+            model = Model(inputs=[inputs], outputs=[out])
         return model
 
 
@@ -1207,21 +1342,37 @@ class InceptionAttentionUnet:
 
         attn0 = attn_gate_block(c3, b0, n_filters * 16)
         u0 = transpose_block(
-            b0, attn0, n_filters=n_filters * 8, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            b0,
+            attn0,
+            n_filters=n_filters * 8,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 64x64x64
 
         attn1 = attn_gate_block(c2, u0, n_filters * 8)
         u1 = transpose_block(
-            u0, attn1, n_filters=n_filters * 4, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            u0,
+            attn1,
+            n_filters=n_filters * 4,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 128x128x128
 
         attn2 = attn_gate_block(c1, u1, n_filters * 4)
         u2 = transpose_block(
-            u1, attn2, n_filters=n_filters * 2, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            u1,
+            attn2,
+            n_filters=n_filters * 2,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 256x256x256
 
         u3 = transpose_block(
-            u2, c0, n_filters=n_filters, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            u2,
+            c0,
+            n_filters=n_filters,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 512x512x512
 
         c9 = Conv2D(
@@ -1233,8 +1384,16 @@ class InceptionAttentionUnet:
         )(u3)
         d1 = Flatten()(c9)
         d2 = Dense(16, activation=hparams.HID_ACT_FUNC)(d1)
-        out = Dense(1, activation="linear")(d2)
-        model = Model(inputs=[inputs], outputs=[out])
+        if hparams.GENDER:
+            gd_input = Input(shape=(1,))
+            gd_d1 = Dense(16, activation=hparams.HID_ACT_FUNC)(gd_input)
+            d1_d2 = concatenate([d2, gd_d1])
+
+            out = Dense(1, activation="linear")(d1_d2)
+            model = Model(inputs=[inputs, gd_input], outputs=[out])
+        else:
+            out = Dense(1, activation="linear")(d2)
+            model = Model(inputs=[inputs], outputs=[out])
         return model
 
 
@@ -1252,7 +1411,6 @@ class CnnAttentionUnet:
             batchnorm=batchnorm,
             strides=1,
             recurrent=hparams.RECURRENT,
-          
         )  # 512x512x512
 
         c1 = conv2d_block(
@@ -1261,7 +1419,6 @@ class CnnAttentionUnet:
             batchnorm=batchnorm,
             strides=2,
             recurrent=hparams.RECURRENT,
-            
         )  # 256x256x256
 
         c2 = conv2d_block(
@@ -1270,7 +1427,6 @@ class CnnAttentionUnet:
             batchnorm=batchnorm,
             strides=2,
             recurrent=hparams.RECURRENT,
-           
         )  # 128x128x128
 
         c3 = conv2d_block(
@@ -1279,7 +1435,6 @@ class CnnAttentionUnet:
             batchnorm=batchnorm,
             strides=2,
             recurrent=hparams.RECURRENT,
-            
         )  # 64x64x64
 
         # bridge
@@ -1290,28 +1445,43 @@ class CnnAttentionUnet:
             batchnorm=batchnorm,
             strides=2,
             recurrent=hparams.RECURRENT,
-        
         )  # 32x32x32
 
         # expansive path
 
         attn0 = attn_gate_block(c3, b0, n_filters * 16)
         u0 = transpose_block(
-            b0, attn0, n_filters=n_filters * 8, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            b0,
+            attn0,
+            n_filters=n_filters * 8,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 64x64x64
 
         attn1 = attn_gate_block(c2, u0, n_filters * 8)
         u1 = transpose_block(
-            u0, attn1, n_filters=n_filters * 4, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            u0,
+            attn1,
+            n_filters=n_filters * 4,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 128x128x128
 
         attn2 = attn_gate_block(c1, u1, n_filters * 4)
         u2 = transpose_block(
-            u1, attn2, n_filters=n_filters * 2, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            u1,
+            attn2,
+            n_filters=n_filters * 2,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 256x256x256
 
         u3 = transpose_block(
-            u2, c0, n_filters=n_filters, batchnorm=batchnorm, recurrent=hparams.RECURRENT
+            u2,
+            c0,
+            n_filters=n_filters,
+            batchnorm=batchnorm,
+            recurrent=hparams.RECURRENT,
         )  # 512x512x512
 
         c9 = Conv2D(
@@ -1323,6 +1493,14 @@ class CnnAttentionUnet:
         )(u3)
         d1 = Flatten()(c9)
         d2 = Dense(16, activation=hparams.HID_ACT_FUNC)(d1)
-        out = Dense(1, activation="linear")(d2)
-        model = Model(inputs=[inputs], outputs=[out])
+        if hparams.GENDER:
+            gd_input = Input(shape=(1,))
+            gd_d1 = Dense(16, activation=hparams.HID_ACT_FUNC)(gd_input)
+            d1_d2 = concatenate([d2, gd_d1])
+
+            out = Dense(1, activation="linear")(d1_d2)
+            model = Model(inputs=[inputs, gd_input], outputs=[out])
+        else:
+            out = Dense(1, activation="linear")(d2)
+            model = Model(inputs=[inputs], outputs=[out])
         return model

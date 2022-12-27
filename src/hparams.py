@@ -9,10 +9,10 @@ PROJECT_NAME = "prac-2"
 # submodel for only model 2
 # submodel 1= one_attention_output_attention, 2= one_attention_output_cnn
 #          3= all_attention_output_attention, 4 = all_attention_output_cnn
-MODEL_NO = 1
+MODEL_NO = 5
 SUB_MODEL_NO = 2
 
-GENDER = False
+GENDER = True
 # NOTES = ""
 MODEL_NAME = ""
 
