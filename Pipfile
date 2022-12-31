@@ -1,0 +1,25 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+numpy = "*"
+pandas = "*"
+matplotlib = "*"
+pylint = "*"
+black = "*"
+scikit-learn = "*"
+tqdm = "*"
+tensorflow = "*"
+seaborn = "*"
+opencv-python = "*"
+wandb = "==0.13.5"
+openpyxl = "*"
+
+[dev-packages]
+ipykernel = "*"
+
+[requires]
+python_version = "3.9"
+python_full_version = "3.9.13"

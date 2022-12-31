@@ -44,8 +44,8 @@ IMG_SIZE = 256
 
 # Training parameters
 LR = 1e-4
-BATCH_SIZE = 8
-EPOCHS = 10
+BATCH_SIZE = 16
+EPOCHS = 2
 ALPHA = 0.1
 BATCH_NORM = False
 PATIENCE = 7

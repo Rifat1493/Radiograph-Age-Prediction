@@ -16,7 +16,7 @@ class BaselineCnn:
         n_filters = 16
         batchnorm = hparams.BATCH_NORM
 
-        inputs = Input(shape=(hparams.IMG_SIZE, hparams.IMG_SIZE, 3))
+        inputs = Input(shape=(hparams.IMG_SIZE, hparams.IMG_SIZE, 3), name="input_1")
 
         c0 = conv2d_block(
             inputs,
@@ -58,14 +58,13 @@ class BaselineCnn:
         d2 = Dense(16, activation=hparams.HID_ACT_FUNC)(d1)
 
         if hparams.GENDER:
-            gd_input = Input(shape=(1,))
+            gd_input = Input(shape=(1,), name="input_2")
             gd_d1 = Dense(16, activation=hparams.HID_ACT_FUNC)(gd_input)
             d1_d2 = concatenate([d2, gd_d1])
-
-            out = Dense(1, activation="linear")(d1_d2)
+            out = Dense(1, activation="linear", name="output")(d1_d2)
             model = Model(inputs=[inputs, gd_input], outputs=[out])
         else:
-            out = Dense(1, activation="linear")(d2)
+            out = Dense(1, activation="linear", name="output")(d2)
             model = Model(inputs=[inputs], outputs=[out])
 
         return model
@@ -266,7 +265,6 @@ class BaselineCnnAttention:
         else:
             out = Dense(1, activation="linear")(d2)
             model = Model(inputs=[inputs], outputs=[out])
-
 
         return model
 

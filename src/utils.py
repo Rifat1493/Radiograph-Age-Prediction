@@ -17,9 +17,15 @@ def load_image(img_name):
         img_name = img_name.decode()
 
     img = cv2.imread(img_name, cv2.IMREAD_COLOR)
-    img = np.array(cv2.resize(img, (IMG_SIZE, IMG_SIZE)), dtype="float32")
+    img = np.array(
+        cv2.resize(img, (hparams.IMG_SIZE, hparams.IMG_SIZE)), dtype="float32"
+    )
 
     return img
+
+
+def map_fn(input_1, input_2, output):
+    return ({"input_1": input_1, "input_2": input_2}, output)
 
 
 def normalize_img(image):
@@ -33,7 +39,7 @@ def set_seeds(seed):
     np.random.seed(seed)
 
 
-def create_dataset(file_names, labels, batch_size, shuffle, cache_file=None):
+def create_dataset_from_file(file_names, gend_array, y_array):
     # Create a Dataset object
     train_image_data = tf.data.Dataset.from_tensor_slices((file_names))
 
@@ -42,34 +48,46 @@ def create_dataset(file_names, labels, batch_size, shuffle, cache_file=None):
     train_image_data = train_image_data.map(py_func, num_parallel_calls=os.cpu_count())
 
     # Map the normalize_img function
-    train_image_data = train_image_data.map(
+    generator_dataset = train_image_data.map(
         normalize_img, num_parallel_calls=os.cpu_count()
     )
 
-    # Duplicate data for the autoencoder (input = output)
-    # py_funct = lambda img: (img, img)
-    # dataset = dataset.map(py_funct)
-    labels = tf.convert_to_tensor(labels, dtype=tf.float32)
-    train_label_data = tf.data.Dataset.from_tensor_slices((labels))
+    y_array = tf.convert_to_tensor(y_array, dtype=tf.float32)
+    gend_array = tf.convert_to_tensor(gend_array, dtype=tf.float32)
+    array_dataset = tf.data.Dataset.from_tensor_slices((gend_array))
+    y_array_dataset = tf.data.Dataset.from_tensor_slices(y_array)
 
-    dataset = tf.data.Dataset.zip((train_image_data, train_label_data))
+    # Zip the two dataset objects together
+    # tmp_dataset = tf.data.Dataset.zip((generator_dataset, array_dataset))
 
-    # Cache dataset
-    if cache_file:
-        dataset = dataset.cache(cache_file)
+    # dataset = tf.data.Dataset.zip((tmp_dataset, y_array_dataset))
 
-    # Shuffle
-    if shuffle:
-        dataset = dataset.shuffle(len(file_names))
+    # dataset = tf.data.Dataset.zip((generator_dataset, array_dataset, y_array_dataset))
+    if hparams.GENDER:
 
-    # Repeat the dataset indefinitely
-    dataset = dataset.repeat()
+        dataset = tf.data.Dataset.zip(
+            ((generator_dataset, array_dataset), y_array_dataset)
+        )
+    else:
+        dataset = tf.data.Dataset.zip((generator_dataset, y_array_dataset))
+    # dataset = dataset.map(map_fn)
 
-    # Batch
-    dataset = dataset.batch(batch_size=batch_size)
+    # # Cache dataset
+    # if cache_file:
+    #     dataset = dataset.cache(cache_file)
 
-    # Prefetch
-    dataset = dataset.prefetch(buffer_size=1)
+    # # Shuffle
+    # if shuffle:
+    #     dataset = dataset.shuffle(len(file_names))
+
+    # # Repeat the dataset indefinitely
+    # dataset = dataset.repeat()
+
+    # # Batch
+    dataset = dataset.batch(hparams.BATCH_SIZE)
+
+    # # Prefetch
+    # dataset = dataset.prefetch(buffer_size=1)
 
     return dataset
 
@@ -80,26 +98,26 @@ def train_model(
     val_dataset=None,
     train_steps=None,
     val_steps=None,
-    train_x=None,
-    train_y=None,
-    val_x=None,
-    val_y=None,
-    gend_train_x=None,
-    gend_val_x=None
 ):
     # if hparams.GENDER:
     #     model_name = hparams.MODEL_NAME + "_gender"
     # else:
     #     model_name = hparams.MODEL_NAME
 
-    if hparams.INIT_WB:
-        wandb.init(
-            project=hparams.PROJECT_NAME,
-            entity="hda-project",
-            name=hparams.MODEL_NAME
-            # notes=hparams.NOTES
-        )
-        wandb.config.update(hparams.CONFIG)
+    # config = hparams.CONFIG
+    # config["project"] = hparams.PROJECT_NAME
+    # config["entity"] = "hda-project"
+    # config["name"] = hparams.MODEL_NAME
+
+    # wandb.init(config=config)
+
+    # wandb.init(
+    #     project=hparams.PROJECT_NAME,
+    #     entity="hda-project",
+    #     name=hparams.MODEL_NAME
+    #     # notes=hparams.NOTES
+    # )
+    # wandb.config.update(hparams.CONFIG,allow_val_change=True)
 
     # early stopping
     # patience=5
@@ -113,7 +131,7 @@ def train_model(
 
     # model checkpoint
     mc = ModelCheckpoint(
-        "../data/artifact/" + hparams.MODEL_NAME + ".h5",
+        "data/artifact/" + hparams.MODEL_NAME + ".h5",
         monitor="val_loss",
         mode="min",
         save_best_only=True,
@@ -147,29 +165,23 @@ def train_model(
         callbacks = [early_stopping, mc, red_lr_plat]
 
     # fit model
-
-    if hparams.GENDER:
-        history = model.fit(
-            x=[train_x, gend_train_x],
-            y=train_y,
-            batch_size=hparams.BATCH_SIZE,
-            epochs=hparams.EPOCHS,
-            callbacks=callbacks,
-            validation_data=([val_x, gend_val_x], val_y),
-            steps_per_epoch=train_steps,
-            validation_steps=val_steps,
-            use_multiprocessing=True
-        )
-
-    else:
-
-        history = model.fit_generator(
-            train_dataset,
-            steps_per_epoch=train_steps,
-            validation_data=val_dataset,
-            validation_steps=val_steps,
-            epochs=hparams.EPOCHS,
-            callbacks=callbacks,
-        )
+    history = model.fit(
+        train_dataset,
+        steps_per_epoch=train_steps,
+        validation_data=val_dataset,
+        validation_steps=val_steps,
+        epochs=hparams.EPOCHS,
+        callbacks=callbacks,
+    )
 
     return history
+
+
+def make_gen_callable(_gen, array, y_array):
+    def gen():
+        for x, y, z in zip(_gen, array, y_array):
+            inputs = (x, y)
+            outputs = z
+            yield inputs, outputs
+
+    return gen
