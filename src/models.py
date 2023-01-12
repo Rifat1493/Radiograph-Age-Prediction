@@ -269,6 +269,57 @@ class BaselineCnnAttention:
         return model
 
 
+class SmallCNN:
+    """
+    Creates a small CNN:
+        - without Gender branch
+        - with Gender branch
+    """
+    def __init__(self, input_img, input_gender=None) -> None:
+
+        self._model = None
+
+        # CNN - For images
+        x = tf.keras.layers.Conv2D(filters=16, kernel_size=(3, 3), strides=(1, 1), padding="same", activation=None)(input_img)
+        x = tf.keras.layers.BatchNormalization(axis=-1)(x)
+        x = tf.keras.layers.Activation('relu')(x)
+
+        x = tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding="same")(x)
+
+        x = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3), strides=(1, 1), padding="same", activation=None)(x)
+        x = tf.keras.layers.BatchNormalization(axis=-1)(x)
+        x = tf.keras.layers.Activation('relu')(x)
+
+        x = tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding="same")(x)
+
+        x = tf.keras.layers.Flatten()(x)
+
+        if input_gender is not None:
+            # Dense - For Gender
+            m = tf.keras.layers.Dense(32, activation='relu')(input_gender)
+
+            # Concatenate CNN and Gender-Dense
+            xm = tf.keras.layers.concatenate([x, m], name="concat-layer")
+
+            xm = tf.keras.layers.Dense(64, activation='relu')(xm)
+            xm = tf.keras.layers.Dense(32, activation='relu')(xm)
+            xm = tf.keras.layers.Dense(16, activation='relu')(xm)
+            age_output = tf.keras.layers.Dense(1, activation = 'linear')(xm)
+            self._model = model = tf.keras.Model(inputs=[input_img, input_gender], outputs=age_output, name="Age_prediction_model")
+        else:
+            x = tf.keras.layers.Dense(64, activation='relu')(x)
+            x = tf.keras.layers.Dense(32, activation='relu')(x)
+            x = tf.keras.layers.Dense(16, activation='relu')(x)
+            age_output = tf.keras.layers.Dense(1, activation = 'linear')(x)
+            self._model = model = tf.keras.Model(inputs=input_img, outputs=age_output, name="Age_prediction_model")
+
+    def __call__(self):
+        """
+        Returns the model created in __init__
+        """
+        return self._model
+
+
 class Inception:
     def __init__(self, input_shape: Tuple[int]):
         """
@@ -323,8 +374,8 @@ class Inception:
         X = Dropout(rate=0.2)(X)
 
         # Output layer
-        X = Dense(1, activation="sigmoid", name="fc")(X)
-
+        X = Dense(1, activation='linear', name='fc')(X)
+        
         # Create model
         model = Model(inputs=X_input, outputs=X, name="Inceptionv4")
 
