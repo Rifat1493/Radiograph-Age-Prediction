@@ -39,7 +39,7 @@ def set_seeds(seed):
     np.random.seed(seed)
 
 
-def create_dataset_from_file(file_names, gend_array, y_array):
+def create_dataset_from_file(file_names, gend_array, y_array, use_gender = hparams.GENDER, batch_size = hparams.BATCH_SIZE):
     # Create a Dataset object
     train_image_data = tf.data.Dataset.from_tensor_slices((file_names))
 
@@ -63,7 +63,7 @@ def create_dataset_from_file(file_names, gend_array, y_array):
     # dataset = tf.data.Dataset.zip((tmp_dataset, y_array_dataset))
 
     # dataset = tf.data.Dataset.zip((generator_dataset, array_dataset, y_array_dataset))
-    if hparams.GENDER:
+    if use_gender:
 
         dataset = tf.data.Dataset.zip(
             ((generator_dataset, array_dataset), y_array_dataset)
@@ -84,7 +84,7 @@ def create_dataset_from_file(file_names, gend_array, y_array):
     # dataset = dataset.repeat()
 
     # # Batch
-    dataset = dataset.batch(hparams.BATCH_SIZE)
+    dataset = dataset.batch(batch_size)
 
     # # Prefetch
     # dataset = dataset.prefetch(buffer_size=1)
