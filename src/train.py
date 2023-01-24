@@ -21,7 +21,7 @@ from utils import create_dataset_from_file, set_seeds, train_model
 set_seeds(42)
 warnings.filterwarnings("ignore")
 # os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 1 for run in gpu -1 for run in cpu
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # 1 for run in gpu -1 for run in cpu
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # os.environ['TF_GPU_ALLOCATOR'] ='cuda_malloc_async'
 
@@ -44,12 +44,12 @@ df_test["img_path"] = df_test["Case ID"].apply(
     lambda x: "data/Bone Age Test Set/boneage-testing-dataset/" + str(x)
 )
 
-train_df = train_df.head(200)
+# train_df = train_df.head(200)
 
 train_df["gender"] = train_df["male"].apply(lambda x: "male" if x else "female")
 
 train_df["gender"].replace(["male", "female"], [1, 0], inplace=True)
-df_test["gender"].replace(["M", "F"], [0, 1], inplace=True)
+df_test["gender"].replace(["M", "F"], [1, 0], inplace=True)
 
 
 # mean age is
@@ -59,9 +59,9 @@ std_bone_age = train_df["boneage"].std()
 
 # using z score for the training
 train_df["bone_age_z"] = (train_df["boneage"] - mean_bone_age) / (std_bone_age)
-
+df_test["bone_age_z"] = (df_test["boneage"] - mean_bone_age) / (std_bone_age)
 # splitting train dataframe into traininng and validation dataframes
-df_train, df_valid = train_test_split(train_df, test_size=0.2, random_state=0)
+df_train, df_valid = train_test_split(train_df, test_size=0.3, random_state=0)
 
 
 train_steps = int(np.ceil(len(df_train) / hparams.BATCH_SIZE))
@@ -83,71 +83,84 @@ test_dataset = create_dataset_from_file(
 )
 
 
-def mae_in_months(x_p, y_p):
+def mse(x_p, y_p):
     """function to return mae in months"""
     return mean_absolute_error(
         (std_bone_age * x_p + mean_bone_age), (std_bone_age * y_p + mean_bone_age)
     )
 
 
-for i in [1, [2, 1], [2, 2], [2, 3], [2, 4], 3, 4, 5, 6]:
+for i in [1, [2, 1], [2, 2], [2, 3], [2, 4], 3, 4, 6]:
+    # for i in [[2, 3], [2, 4], 3, 4, 6]:
     # MODEL_NO = i[0]
-    if type(i) == list:
-        hparams.MODEL_NO = i[0]
-        hparams.SUB_MODEL_NO = i[1]
-    else:
-        hparams.MODEL_NO = i
+    # for i in [3]:
+    try:
+        if type(i) == list:
+            hparams.MODEL_NO = i[0]
+            hparams.SUB_MODEL_NO = i[1]
+        else:
+            hparams.MODEL_NO = i
 
+        if hparams.NORMALIZE_OUTPUT == True:
+            metric = [mse]
+        else:
+            metric = ["mse"]
 
-    if hparams.NORMALIZE_OUTPUT == True:
-        metric = ["mae_in_months"]
-    else:
-        metric = ["mse"]
+        if hparams.MODEL_NO == 1:
+            hparams.MODEL_NAME = "baseline"
+            model = BaselineCnn.baseline_cnn()
 
-    if hparams.MODEL_NO == 1:
-        hparams.MODEL_NAME = "baseline"
-        model = BaselineCnn.baseline_cnn()
+        elif hparams.MODEL_NO == 2:
+            hparams.MODEL_NAME = "baseline_attention_" + str(hparams.SUB_MODEL_NO)
+            model = BaselineCnnAttention.baseline_cnn_attention(hparams.SUB_MODEL_NO)
 
-    elif hparams.MODEL_NO == 2:
-        hparams.MODEL_NAME = "baseline_attention_" + str(hparams.SUB_MODEL_NO)
-        model = BaselineCnnAttention.baseline_cnn_attention(hparams.SUB_MODEL_NO)
+        elif hparams.MODEL_NO == 3:
+            model = Unet.unet()
+            hparams.MODEL_NAME = "unet"
 
-    elif hparams.MODEL_NO == 3:
-        model = Unet.unet()
-        hparams.MODEL_NAME = "unet"
+        elif hparams.MODEL_NO == 4:
+            model = ResidualAttentionUnet.residual_attention_unet()
+            hparams.MODEL_NAME = "residual_attention_unet"
+        elif hparams.MODEL_NO == 5:
+            model = InceptionAttentionUnet.inception_attention_unet()
+            hparams.MODEL_NAME = "inception_attention_unet"
+        elif hparams.MODEL_NO == 6:
+            model = CnnAttentionUnet.cnn_attention_unet()
+            hparams.MODEL_NAME = "cnn_attention_unet"
 
-    elif hparams.MODEL_NO == 4:
-        model = ResidualAttentionUnet.residual_attention_unet()
-        hparams.MODEL_NAME = "residual_attention_unet"
-    elif hparams.MODEL_NO == 5:
-        model = InceptionAttentionUnet.inception_attention_unet()
-        hparams.MODEL_NAME = "inception_attention_unet"
-    elif hparams.MODEL_NO == 6:
-        model = CnnAttentionUnet.cnn_attention_unet()
-        hparams.MODEL_NAME = "cnn_attention_unet"
+        model.compile(loss="mse", optimizer="adam", metrics=metric)
+        wandb.init(
+            project=hparams.PROJECT_NAME,
+            entity="hda-project",
+            name=hparams.MODEL_NAME
+            # notes=hparams.NOTES
+        )
+        wandb.config.update(hparams.CONFIG)
 
-    model.compile(loss="mse", optimizer="adam", metrics=metric)
-    wandb.init(
-        project=hparams.PROJECT_NAME,
-        entity="hda-project",
-        name=hparams.MODEL_NAME
-        # notes=hparams.NOTES
-    )
-    wandb.config.update(hparams.CONFIG)
+        if hparams.GENDER:
+            hparams.MODEL_NAME = hparams.MODEL_NAME + "_gender"
 
-    if hparams.GENDER:
-        hparams.MODEL_NAME = hparams.MODEL_NAME + "_gender"
+        history = train_model(model, train_dataset, val_dataset)
 
-    history = train_model(model, train_dataset, val_dataset, train_steps, val_steps)
+        wandb.config.update({"MODEL_NAME": hparams.MODEL_NAME})
 
-    wandb.config.update({"MODEL_NAME": hparams.MODEL_NAME})
+        art = wandb.Artifact(hparams.MODEL_NAME + "_best_model", type="model")
+        art.add_file("data/artifact/" + hparams.MODEL_NAME + ".h5")
+        wandb.log_artifact(art)
 
-    art = wandb.Artifact(hparams.MODEL_NAME + "_best_model", type="model")
-    art.add_file("data/artifact/" + hparams.MODEL_NAME + ".h5")
-    wandb.log_artifact(art)
+        if hparams.NORMALIZE_OUTPUT == True:
+            pred_y = mean_bone_age + std_bone_age * (model.predict(test_dataset))
+            test_y = mean_bone_age + std_bone_age * (
+                df_test[hparams.TARGET_VAR].to_numpy()
+            )
+            mse_value = mean_squared_error(test_y, pred_y)
+        else:
+            test_y = df_test[hparams.TARGET_VAR].to_numpy()
+            pred_y = model.predict(test_dataset)
+            mse_value = mean_squared_error(test_y, pred_y)
 
-    test_y = df_test[hparams.TARGET_VAR].to_numpy()
-    pred_y = model.predict(test_dataset)
-    mse_value = mean_squared_error(test_y, pred_y)
-    wandb.log({"test_mse": mse_value})
-    wandb.finish()
+        wandb.log({"test_mse": mse_value})
+        wandb.finish()
+    except:
+        wandb.finish()
+        print("An exception occurred")

@@ -1,7 +1,7 @@
 # Supervised loss weights
 from tensorflow.keras.layers import LeakyReLU
 
-PROJECT_NAME = "prac-2"
+PROJECT_NAME = "prod-100"
 # model 1 = baseline, 2 = baseline_attention, 3 = unet,
 #       4 = residual_attention_unet, 5= inception_attention_unet,
 #       6 = conv2d_attention_unet
@@ -9,10 +9,10 @@ PROJECT_NAME = "prac-2"
 # submodel for only model 2
 # submodel 1= one_attention_output_attention, 2= one_attention_output_cnn
 #          3= all_attention_output_attention, 4 = all_attention_output_cnn
-MODEL_NO = 5
+MODEL_NO = 3
 SUB_MODEL_NO = 2
 
-GENDER = True
+GENDER = False
 # NOTES = ""
 MODEL_NAME = ""
 
@@ -23,7 +23,7 @@ MODEL_NAME = ""
 # VAL_CACHE_PATH = "../data/artifact/cache/val_cache"
 
 
-TARGET_VAR = "boneage"
+TARGET_VAR = "bone_age_z"
 
 if TARGET_VAR == "boneage":
     NORMALIZE_OUTPUT = False
@@ -45,10 +45,10 @@ IMG_SIZE = 256
 # Training parameters
 LR = 1e-4
 BATCH_SIZE = 16
-EPOCHS = 2
+EPOCHS = 100
 ALPHA = 0.1
-BATCH_NORM = False
-PATIENCE = 7
+BATCH_NORM = True
+PATIENCE = 10
 RECURRENT = 1
 HID_ACT_FUNC = LeakyReLU(ALPHA)
 
@@ -73,5 +73,5 @@ CONFIG = {
     "ALPHA": ALPHA,
     "BATCH_NORM": BATCH_NORM,
     "HID_ACT_FUNC": "LeakyReLU",
-    "PATIENCE": PATIENCE
+    "PATIENCE": PATIENCE,
 }
