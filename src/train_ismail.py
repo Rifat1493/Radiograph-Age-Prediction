@@ -31,7 +31,8 @@ img_size = 256
 # ## Load and Preprocess Input Dataset
 
 # %%
-machine = "remote_system"
+# machine = "remote_system"
+machine = "local"
 # loading Data
     
 ### Set here the localtion of the data folder of your google drive
@@ -112,7 +113,8 @@ test_df.loc[:, 'bone_age_z'] = (test_df['boneage'] - mean_bone_age) / std_bone_a
 def mae_in_months(x_p, y_p):
     '''function to return mae in months'''
     return mean_absolute_error((std_bone_age*x_p + mean_bone_age), (std_bone_age*y_p + mean_bone_age)) 
-def random_learning_rate(lower_bound=0.01, upper_bound=0.1) -> float:
+
+def random_learning_rate(lower_bound=0.01, upper_bound=1.0) -> float:
     return np.random.uniform(lower_bound, upper_bound) * np.random.choice([1, 0.1, 0.01 ])
 
 # %% [markdown]
@@ -129,8 +131,7 @@ lst_epochs = [1_0]
 # body_data = np.random.randint(10000,  size=(1280, 100))
 # tags_data = np.random.randint(2,      size=(1280, 4)).astype("float32")
 # np.random.random() 
-def random_learning_rate(lower_bound=0.01, upper_bound=0.1) -> float:
-    return np.random.uniform(lower_bound, upper_bound) * np.random.choice([1, 0.1, 0.01 ])
+
 
 # %%
 # reduce lr on plateau
@@ -219,13 +220,14 @@ for i in range(2):
         test_dataset_wg = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=True, batch_size=batch_size)
 
     # Weights and Biases run initialization
-    run = wandb.init(project="jan12-run", 
+    run = wandb.init(project="hda-final", 
                     entity="hda-project",  # Entity is my team name on wandb website
                     name = "Incenptionv4-v2-wg",
                     config = {
-                    "architecture": "base_conv_no_gender_info",
-                    "start_lr": lr,
-                    "batch_size": batch_size
+                    "MODEL_NAME": "base_conv_no_gender_info",
+                    "START_LR": lr,
+                    "BATCH_SIZE": batch_size,
+                    "GENDER": with_gender
                     })
     # wandb.config["learning_rate"] = lr
     # wandb.config["epochs"] = epoch
@@ -240,7 +242,7 @@ for i in range(2):
         model = Inception((img_size, img_size, 3))()
 
         #compile model
-        model.compile(loss = 'mse', optimizer = optimizer , metrics = [mae_in_months])
+        model.compile(loss = 'mse', optimizer = optimizer, metrics = [mae_in_months])
 
         # Train the model
         model.fit(train_dataset,  epochs = epoch, callbacks=callbacks, validation_data=valid_dataset)
@@ -249,7 +251,7 @@ for i in range(2):
         model = Inception((img_size, img_size, 3), input_gender=input_gender)()
 
         #compile model
-        model.compile(loss = 'mse', optimizer = optimizer , metrics = [mae_in_months])
+        model.compile(loss = 'mse', optimizer = optimizer, metrics = [mae_in_months])
 
         # Train the model
         model.fit(train_dataset_wg,  epochs = epoch, callbacks=callbacks, validation_data=valid_dataset_wg)
