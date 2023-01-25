@@ -6,11 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import sklearn
 import tensorflow as tf
 from keras.metrics import mean_absolute_error
-
 # from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
 import wandb
@@ -27,41 +26,57 @@ warnings.filterwarnings("ignore")
 
 
 # loading dataframes
-train_df = pd.read_csv("data/Bone Age Training Set/train.csv")
+df_train = pd.read_csv("data/Bone Age Training Set/train.csv")
 df_test = pd.read_excel("data/Bone Age Test Set/test.xlsx")
+df_valid = pd.read_csv("data/Bone Age Validation Set/Validation Dataset.csv")
+
 
 # appending file extension to id column for both training and testing dataframes
-train_df["id"] = train_df["id"].apply(lambda x: str(x) + ".png")
+df_train["id"] = df_train["id"].apply(lambda x: str(x) + ".png")
 df_test["Case ID"] = df_test["Case ID"].apply(lambda x: str(x) + ".png")
+df_valid["Image ID"] = df_valid["Image ID"].apply(lambda x: str(x) + ".png")
 df_test.rename(
     columns={"Ground truth bone age (months)": "boneage", "Sex": "gender"}, inplace=True
 )
 
-train_df["img_path"] = train_df["id"].apply(
+df_valid.rename(
+    columns={"Bone Age (months)": "boneage", "male": "gender"}, inplace=True
+)
+
+
+df_train["img_path"] = df_train["id"].apply(
     lambda x: "data/Bone Age Training Set/boneage-training-dataset/" + str(x)
 )
 df_test["img_path"] = df_test["Case ID"].apply(
     lambda x: "data/Bone Age Test Set/boneage-testing-dataset/" + str(x)
 )
 
-# train_df = train_df.head(200)
+df_valid["img_path"] = df_valid["Image ID"].apply(
+    lambda x: "data/Bone Age Validation Set/boneage-validation-dataset/" + str(x)
+)
 
-train_df["gender"] = train_df["male"].apply(lambda x: "male" if x else "female")
 
-train_df["gender"].replace(["male", "female"], [1, 0], inplace=True)
+df_train["gender"] = df_train["male"].apply(lambda x: "male" if x else "female")
+df_train["gender"].replace(["male", "female"], [1, 0], inplace=True)
 df_test["gender"].replace(["M", "F"], [1, 0], inplace=True)
+df_valid["gender"].replace([True, False], [1, 0], inplace=True)
+
 
 
 # mean age is
-mean_bone_age = train_df["boneage"].mean()
+mean_bone_age = df_train["boneage"].mean()
 # standard deviation of boneage
-std_bone_age = train_df["boneage"].std()
+std_bone_age = df_train["boneage"].std()
 
 # using z score for the training
-train_df["bone_age_z"] = (train_df["boneage"] - mean_bone_age) / (std_bone_age)
+df_train["bone_age_z"] = (df_train["boneage"] - mean_bone_age) / (std_bone_age)
 df_test["bone_age_z"] = (df_test["boneage"] - mean_bone_age) / (std_bone_age)
+df_valid["bone_age_z"] = (df_valid["boneage"] - mean_bone_age) / (std_bone_age)
+
 # splitting train dataframe into traininng and validation dataframes
-df_train, df_valid = train_test_split(train_df, test_size=0.3, random_state=0)
+# df_train, df_valid = train_test_split(train_df, test_size=0.3, random_state=0)
+
+#df_train = df_train.head(100)
 
 
 train_steps = int(np.ceil(len(df_train) / hparams.BATCH_SIZE))
@@ -83,17 +98,19 @@ test_dataset = create_dataset_from_file(
 )
 
 
-def mse(x_p, y_p):
+def mae_in_months(x_p, y_p):
     """function to return mae in months"""
-    return mean_absolute_error(
-        (std_bone_age * x_p + mean_bone_age), (std_bone_age * y_p + mean_bone_age)
-    )
+    if hparams.NORMALIZE_OUTPUT == True:
+        return mean_absolute_error(
+            (std_bone_age * x_p + mean_bone_age), (std_bone_age * y_p + mean_bone_age))
+    else:
+        return mean_absolute_error(x_p,y_p)
+    
 
-
-for i in [1, [2, 1], [2, 2], [2, 3], [2, 4], 3, 4, 6]:
+# for i in [1, [2, 1], [2, 2], [2, 3], [2, 4], 3, 4, 6]:
     # for i in [[2, 3], [2, 4], 3, 4, 6]:
     # MODEL_NO = i[0]
-    # for i in [3]:
+for i in [3]:
     try:
         if type(i) == list:
             hparams.MODEL_NO = i[0]
@@ -101,10 +118,6 @@ for i in [1, [2, 1], [2, 2], [2, 3], [2, 4], 3, 4, 6]:
         else:
             hparams.MODEL_NO = i
 
-        if hparams.NORMALIZE_OUTPUT == True:
-            metric = [mse]
-        else:
-            metric = ["mse"]
 
         if hparams.MODEL_NO == 1:
             hparams.MODEL_NAME = "baseline"
@@ -128,7 +141,8 @@ for i in [1, [2, 1], [2, 2], [2, 3], [2, 4], 3, 4, 6]:
             model = CnnAttentionUnet.cnn_attention_unet()
             hparams.MODEL_NAME = "cnn_attention_unet"
 
-        model.compile(loss="mse", optimizer="adam", metrics=metric)
+        optimizer = tf.keras.optimizers.Adam(hparams.START_LR)
+        model.compile(loss="mse", optimizer=optimizer, metrics=[mae_in_months])
         wandb.init(
             project=hparams.PROJECT_NAME,
             entity="hda-project",
@@ -153,14 +167,14 @@ for i in [1, [2, 1], [2, 2], [2, 3], [2, 4], 3, 4, 6]:
             test_y = mean_bone_age + std_bone_age * (
                 df_test[hparams.TARGET_VAR].to_numpy()
             )
-            mse_value = mean_squared_error(test_y, pred_y)
+            mae_value = sklearn.metrics.mean_absolute_error(test_y, pred_y)
         else:
             test_y = df_test[hparams.TARGET_VAR].to_numpy()
             pred_y = model.predict(test_dataset)
-            mse_value = mean_squared_error(test_y, pred_y)
+            mae_value = sklearn.metrics.mean_absolute_error(test_y, pred_y)
 
-        wandb.log({"test_mse": mse_value})
+        wandb.log({"test_mae_in_months": mae_value})
         wandb.finish()
-    except:
+    except Exception as e:
         wandb.finish()
-        print("An exception occurred")
+        print("An exception occurred", e)

@@ -4,7 +4,8 @@ import random
 import cv2
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+from tensorflow.keras.callbacks import (EarlyStopping, ModelCheckpoint,
+                                        ReduceLROnPlateau)
 from wandb.keras import WandbCallback
 
 import hparams
@@ -39,7 +40,7 @@ def set_seeds(seed):
     np.random.seed(seed)
 
 
-def create_dataset_from_file(file_names, gend_array, y_array, use_gender = hparams.GENDER, batch_size = hparams.BATCH_SIZE):
+def create_dataset_from_file(file_names, gend_array, y_array, use_gender=hparams.GENDER, batch_size = hparams.BATCH_SIZE):
     # Create a Dataset object
     train_image_data = tf.data.Dataset.from_tensor_slices((file_names))
 
@@ -160,7 +161,7 @@ def train_model(
             red_lr_plat,
             WandbCallback(mode="min", save_model=False),
         ]
-
+#red_lr_plat,
     else:
         callbacks = [early_stopping, mc, red_lr_plat]
 

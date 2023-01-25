@@ -1064,8 +1064,7 @@ class Inception:
 
         return X
 
-    
-
+   
 class ResidualAttentionUnet:
     @staticmethod
     def residual_attention_unet():

@@ -1,7 +1,17 @@
 # Supervised loss weights
+import numpy as np
 from tensorflow.keras.layers import LeakyReLU
 
-PROJECT_NAME = "prod-100"
+
+def random_learning_rate(lower_bound=0.01, upper_bound=1.0) -> float:
+    return np.random.uniform(lower_bound, upper_bound) * np.random.choice([1, 0.1, 0.01 ])
+
+
+PROJECT_NAME = "prac-3"
+GENDER = False
+NORMALIZE_OUTPUT = True
+EPOCHS = 10
+
 # model 1 = baseline, 2 = baseline_attention, 3 = unet,
 #       4 = residual_attention_unet, 5= inception_attention_unet,
 #       6 = conv2d_attention_unet
@@ -12,7 +22,7 @@ PROJECT_NAME = "prod-100"
 MODEL_NO = 3
 SUB_MODEL_NO = 2
 
-GENDER = False
+
 # NOTES = ""
 MODEL_NAME = ""
 
@@ -23,12 +33,10 @@ MODEL_NAME = ""
 # VAL_CACHE_PATH = "../data/artifact/cache/val_cache"
 
 
-TARGET_VAR = "bone_age_z"
-
-if TARGET_VAR == "boneage":
-    NORMALIZE_OUTPUT = False
+if NORMALIZE_OUTPUT:
+    TARGET_VAR = "bone_age_z"
 else:
-    NORMALIZE_OUTPUT = True
+    TARGET_VAR = "boneage"
 
 # Debugging section
 INIT_WB = True
@@ -43,9 +51,9 @@ IMG_SIZE = 256
 
 
 # Training parameters
-LR = 1e-4
+START_LR = random_learning_rate()
 BATCH_SIZE = 16
-EPOCHS = 100
+
 ALPHA = 0.1
 BATCH_NORM = True
 PATIENCE = 10
@@ -67,7 +75,7 @@ CONFIG = {
     "NORMALIZE_OUTPUT": NORMALIZE_OUTPUT,
     "INIT_WB": INIT_WB,
     "IMG_SIZE": IMG_SIZE,
-    "LR": LR,
+    "START_LR": START_LR,
     "BATCH_SIZE": BATCH_SIZE,
     "EPOCHS": EPOCHS,
     "ALPHA": ALPHA,
