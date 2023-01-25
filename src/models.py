@@ -321,7 +321,7 @@ class SmallCNN:
 
 
 class Inception:
-    def __init__(self, input_shape: Tuple[int]):
+    def __init__(self, input_shape: Tuple[int], input_gender=None):
         """
         Implementation of the Inception-v4 architecture
 
@@ -370,14 +370,35 @@ class Inception:
         X = AveragePooling2D(kernel_pooling, name="avg_pool")(X)
         X = Flatten()(X)
 
-        # Dropout
-        X = Dropout(rate=0.2)(X)
+        if input_gender is not None:
+            # Dense - For Gender
+            m = tf.keras.layers.Dense(32, activation='relu')(input_gender)
 
-        # Output layer
-        X = Dense(1, activation='linear', name='fc')(X)
+            # Concatenate CNN and Gender-Dense
+            xm = tf.keras.layers.concatenate([X, m], name="concat-layer")
+
+            xm = tf.keras.layers.Dense(64, activation='relu')(xm)
+            # Dropout
+            xm = Dropout(rate=0.2)(xm)
+            xm = tf.keras.layers.Dense(32, activation='relu')(xm)
+            xm = tf.keras.layers.Dense(16, activation='relu')(xm)
+
+            # Output Layer
+            xm = tf.keras.layers.Dense(1, activation='linear', name='fc')(xm)
+
+            # Create Model
+            model = model = Model(inputs=[X_input, input_gender], outputs=xm, name="IncenptionV4-wiGender")
         
-        # Create model
-        model = Model(inputs=X_input, outputs=X, name="Inceptionv4")
+        else:
+            # Dropout
+            X = Dropout(rate=0.2)(X)
+
+            # Output layer
+            X = Dense(1, activation='linear', name='fc')(X)
+            
+            # Create model
+            model = Model(inputs=X_input, outputs=X, name="Inceptionv4")
+
 
         # To be returned by __call__
         self._model = model
