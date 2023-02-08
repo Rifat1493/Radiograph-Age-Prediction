@@ -21,16 +21,15 @@ from utils import create_dataset_from_file
 from models import SmallCNN, Inception
 # !wandb login  # Login command for Weights and Biases library
 
-# %% [markdown]
+# To disable the GPU
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
 # ## HyperParameters
 
-# %%
 img_size = 256
 
-# %% [markdown]
 # ## Load and Preprocess Input Dataset
 
-# %%
 # machine = "remote_system"
 machine = "local"
 # loading Data
@@ -201,13 +200,13 @@ red_lr_plat = ReduceLROnPlateau(
 
 with_gender = True
 for i in range(2):
+    lr = random_learning_rate()
+    batch_size = np.random.choice([8, 16, 32])
+    epoch = np.random.choice([50, 150])
+
     # lr = random_learning_rate()
     # batch_size = np.random.choice([8, 16, 32, 64])
-    # epoch = np.random.choice([300, 400, 500 ])
-
-    lr = random_learning_rate()
-    batch_size = np.random.choice([8, 16, 32, 64])
-    epoch = np.random.choice([3, 4, 5 ])
+    # epoch = np.random.choice([3, 4, 5 ])
 
     if not with_gender:
         # Set Batch Size in the datasets
