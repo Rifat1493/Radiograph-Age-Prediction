@@ -1,4 +1,3 @@
-# %%
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import tensorflow as tf
@@ -94,7 +93,8 @@ train_df.loc[:, 'bone_age_z'] = (train_df['boneage'] - mean_bone_age) / std_bone
 valid_df.loc[:, "bone_age_z"] = (valid_df["boneage"] - mean_bone_age) / std_bone_age
 test_df.loc[:, 'bone_age_z'] = (test_df['boneage'] - mean_bone_age) / std_bone_age
 
-# train_df = train_df[:64]
+train_df = train_df[:64]
+valid_df = valid_df[:64]
 
 # train_dataset = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=False, batch_size=32)
 # valid_dataset = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=False, batch_size=32)
@@ -104,11 +104,7 @@ test_df.loc[:, 'bone_age_z'] = (test_df['boneage'] - mean_bone_age) / std_bone_a
 # valid_dataset_wg = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=True, batch_size=32)
 # test_dataset_wg = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=True, batch_size=32)
 
-
-# %% [markdown]
-# ## Model Training
-
-# %%
+# Helper Functions
 def mae_in_months(x_p, y_p):
     '''function to return mae in months'''
     return mean_absolute_error((std_bone_age*x_p + mean_bone_age), (std_bone_age*y_p + mean_bone_age)) 
@@ -116,23 +112,24 @@ def mae_in_months(x_p, y_p):
 def random_learning_rate(lower_bound=0.01, upper_bound=1.0) -> float:
     return np.random.uniform(lower_bound, upper_bound) * np.random.choice([1, 0.1, 0.01 ])
 
-# %% [markdown]
-# ### Prepare callback functions
+def tf_dataset_calculate_mae_in_months(tf_dataset=None):
+    pred_y = np.array([])
+    test_y = np.array([])
+    for xray_batch in tf_dataset:
+        # In xray_batch is a tuple, 1st element is features, 2nd element is the label or target
+        yhat = model.predict(xray_batch[0]).flatten()
+        pred_y = np.append(pred_y, yhat)
+        y = xray_batch[1].numpy()
+        test_y = np.append(test_y, y)
+    mae = mae_in_months(pred_y, test_y)
+    #     break
+    # print(f"pred_y: {len(pred_y)}")
+    # print(f"test_y: {len(test_y)}")
+    return mae.numpy()
 
-# %%
-# lst_lrs = [0.1, 0.01, 0.001, 0.0001]
-# lst_epochs = [1_0, 2_0, 3_0, 4_0]
 
-lst_lrs = [0.01]
-lst_epochs = [1_0]
+### Prepare callback functions
 
-# %%
-# body_data = np.random.randint(10000,  size=(1280, 100))
-# tags_data = np.random.randint(2,      size=(1280, 4)).astype("float32")
-# np.random.random() 
-
-
-# %%
 # reduce lr on plateau
 red_lr_plat = ReduceLROnPlateau(
     monitor="val_loss",
@@ -145,52 +142,87 @@ red_lr_plat = ReduceLROnPlateau(
     min_lr=1e-10,
 )
 
+# model checkpoint
+mc = ModelCheckpoint(
+    "data/artifact/" + "model" + ".h5",
+    monitor="val_loss",
+    mode="min",
+    save_best_only=True,
+)
 
-# ## Base Convolution Neural Network (BaseCNN)
+### Model Training
 
-# for i in range(3):
-#     lr = random_learning_rate()
-#     batch_size = np.random.choice([8, 16, 32, 64])
-#     epoch = np.random.choice([2, 3, 4 ])
+## Base Convolution Neural Network (BaseCNN)
 
-#     # Set Batch Size in the datasets
-#     train_dataset = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=False, batch_size=batch_size)
-#     valid_dataset = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=False, batch_size=batch_size)
-#     test_dataset = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=False, batch_size=batch_size)
+with_gender = True
+for i in range(0):
+    if i == 1:
+        with_gender = False
+    lr = random_learning_rate()
+    batch_size = np.random.choice([32])
+    epoch = np.random.choice([100])
 
-#     train_dataset_wg = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=True, batch_size=batch_size)
-#     valid_dataset_wg = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=True, batch_size=batch_size)
-#     test_dataset_wg = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=True, batch_size=batch_size)
+    # Set Batch Size in the datasets
+    if not with_gender:
+        train_dataset = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=False, batch_size=batch_size)
+        valid_dataset = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=False, batch_size=batch_size)
+        test_dataset = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=False, batch_size=batch_size)
+    else:
+        train_dataset_wg = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=True, batch_size=batch_size)
+        valid_dataset_wg = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=True, batch_size=batch_size)
+        test_dataset_wg = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=True, batch_size=batch_size)
 
-#     # Weights and Biases run initialization
-#     run = wandb.init(project="jan12-run", 
-#                     entity="hda-project",  # Entity is my team name on wandb website
-#                     name = "BaseCNN_v3wg",
-#                     config = {
-#                     "architecture": "base_conv_no_gender_info",
-#                     "start_lr": lr,
-#                     "batch_size": batch_size
-#                     })
-#     # wandb.config["learning_rate"] = lr
-#     # wandb.config["epochs"] = epoch
-#     callbacks = [red_lr_plat, WandbCallback()]
+    # Weights and Biases run initialization
+    run = wandb.init(project="hda-final", 
+                    entity="hda-project",  # Entity is my team name on wandb website
+                    name = f"CNN-v2-g-{with_gender}",
+                    config = {
+                    "MODEL_NAME": "CNN",
+                    "START_LR": lr,
+                    "BATCH_SIZE": batch_size,
+                    "GENDER": with_gender
+                    })
 
-#     input_img = tf.keras.Input(shape=(img_size, img_size, 3), name="image")
-#     input_gender = tf.keras.Input(shape=(1), name="gender")
+    callbacks = [red_lr_plat, WandbCallback()]
 
-#     model = SmallCNN( input_img=input_img, input_gender=input_gender )()
-#     # model = Inception((img_size, img_size, 3))()
+    optimizer = tf.keras.optimizers.Adam( lr )
 
-#     optimizer = tf.keras.optimizers.Adam( lr )
+    input_img = tf.keras.Input(shape=(img_size, img_size, 3), name="image")
+    if not with_gender:
+        model = SmallCNN(input_img=input_img)()
 
-#     #compile model
-#     model.compile(loss = 'mse', optimizer = optimizer , metrics = [mae_in_months])
+        #compile model
+        model.compile(loss = 'mse', optimizer = optimizer, metrics = [mae_in_months])
 
-#     # Train the model
-#     model.fit(train_dataset_wg,  epochs = epoch, callbacks=callbacks, validation_data=valid_dataset_wg)
+        # Train the model
+        model.fit(train_dataset,  epochs = epoch, callbacks=callbacks, validation_data=valid_dataset)
+        
+        # predictions on test dataset
+        test_mae = tf_dataset_calculate_mae_in_months(test_dataset)
 
-#     # Tell W&B that a model run is complete
-#     run.finish() 
+    else:
+        input_gender = tf.keras.Input(shape=(1), name="gender")
+        model = SmallCNN( input_img=input_img, input_gender=input_gender )()
+
+        #compile model
+        model.compile(loss = 'mse', optimizer = optimizer, metrics = [mae_in_months])
+
+        # Train the model
+        model.fit(train_dataset_wg,  epochs = epoch, callbacks=callbacks, validation_data=valid_dataset_wg)
+
+        # predictions on test dataset
+        test_mae = tf_dataset_calculate_mae_in_months(test_dataset_wg)
+
+    art = wandb.Artifact(f"model-{run.name}-h5", type="model")
+    art.add_file(f"{run.dir}/model-best.h5")
+    wandb.log_artifact(art)
+
+    # Log Performance of the test dataset
+    wandb.log({"test_mae_in_months": test_mae})
+
+    # Tell W&B that a model run is complete
+    run.finish() 
+
 
 # Save the Model
 # model.save(os.path.join("..", "nn_models", "model.h5"))
@@ -199,14 +231,12 @@ red_lr_plat = ReduceLROnPlateau(
 # ## Inceptionv4 Neural Network (Inv4NN)
 
 with_gender = True
-for i in range(2):
+for i in range(1):
+    if i == 1:
+        with_gender = False
     lr = random_learning_rate()
-    batch_size = np.random.choice([8, 16, 32])
-    epoch = np.random.choice([50, 150])
-
-    # lr = random_learning_rate()
-    # batch_size = np.random.choice([8, 16, 32, 64])
-    # epoch = np.random.choice([3, 4, 5 ])
+    batch_size = np.random.choice([32])
+    epoch = np.random.choice([5])
 
     if not with_gender:
         # Set Batch Size in the datasets
@@ -221,19 +251,15 @@ for i in range(2):
     # Weights and Biases run initialization
     run = wandb.init(project="hda-final", 
                     entity="hda-project",  # Entity is my team name on wandb website
-                    name = "Incenptionv4-v2-wg",
+                    name = f"inv4-v1-g-{with_gender}",
                     config = {
-                    "MODEL_NAME": "base_conv_no_gender_info",
+                    "MODEL_NAME": "Inceptionv4",
                     "START_LR": lr,
                     "BATCH_SIZE": batch_size,
                     "GENDER": with_gender
                     })
-    # wandb.config["learning_rate"] = lr
-    # wandb.config["epochs"] = epoch
-    callbacks = [red_lr_plat, WandbCallback()]
 
-    input_img = tf.keras.Input(shape=(img_size, img_size, 3), name="image")
-    input_gender = tf.keras.Input(shape=(1), name="gender")
+    callbacks = [red_lr_plat, mc, WandbCallback()]
 
     optimizer = tf.keras.optimizers.Adam( lr )
 
@@ -246,7 +272,10 @@ for i in range(2):
         # Train the model
         model.fit(train_dataset,  epochs = epoch, callbacks=callbacks, validation_data=valid_dataset)
 
+        # predictions on test dataset
+        test_mae = tf_dataset_calculate_mae_in_months(test_dataset)
     else:
+        input_gender = tf.keras.Input(shape=(1), name="gender")
         model = Inception((img_size, img_size, 3), input_gender=input_gender)()
 
         #compile model
@@ -255,6 +284,15 @@ for i in range(2):
         # Train the model
         model.fit(train_dataset_wg,  epochs = epoch, callbacks=callbacks, validation_data=valid_dataset_wg)
 
+        # predictions on test dataset
+        test_mae = tf_dataset_calculate_mae_in_months(test_dataset_wg)
+
+    art = wandb.Artifact(f"model-{run.name}-h5", type="model")
+    art.add_file(f"{run.dir}/model-best.h5")
+    wandb.log_artifact(art)
+
+    # Log Performance of the test dataset
+    wandb.log({"test_mae_in_months": test_mae})
 
     # Tell W&B that a model run is complete
     run.finish() 
