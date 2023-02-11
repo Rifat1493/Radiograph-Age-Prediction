@@ -1,3 +1,4 @@
+import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.layers import *
 
@@ -27,6 +28,7 @@ def conv2d_block(
         kernel_initializer="he_normal",
         padding="same",
         dilation_rate=dilation_rate,
+        kernel_regularizer=tf.keras.regularizers.l2(0.001),
     )(input_tensor)
     if batchnorm:
         conv = BatchNormalization()(conv)
