@@ -286,7 +286,25 @@ class SmallCNN:
 
         x = tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding="same")(x)
 
-        x = tf.keras.layers.Conv2D(filters=8, kernel_size=(3, 3), strides=(1, 1), padding="same", activation=None)(x)
+        x = tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3), strides=(1, 1), padding="same", activation=None)(x)
+        x = tf.keras.layers.BatchNormalization(axis=-1)(x)
+        x = tf.keras.layers.Activation('relu')(x)
+
+        x = tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding="same")(x)
+
+        x = tf.keras.layers.Conv2D(filters=64, kernel_size=(3, 3), strides=(1, 1), padding="same", activation=None)(x)
+        x = tf.keras.layers.BatchNormalization(axis=-1)(x)
+        x = tf.keras.layers.Activation('relu')(x)
+
+        x = tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding="same")(x)
+        
+        x = tf.keras.layers.Conv2D(filters=128, kernel_size=(3, 3), strides=(1, 1), padding="same", activation=None)(x)
+        x = tf.keras.layers.BatchNormalization(axis=-1)(x)
+        x = tf.keras.layers.Activation('relu')(x)
+
+        x = tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding="same")(x)
+
+        x = tf.keras.layers.Conv2D(filters=256, kernel_size=(3, 3), strides=(1, 1), padding="same", activation=None)(x)
         x = tf.keras.layers.BatchNormalization(axis=-1)(x)
         x = tf.keras.layers.Activation('relu')(x)
 
@@ -301,17 +319,17 @@ class SmallCNN:
             # Concatenate CNN and Gender-Dense
             xm = tf.keras.layers.concatenate([x, m], name="concat-layer")
 
-            xm = tf.keras.layers.Dense(64, activation='relu')(xm)
-            xm = tf.keras.layers.Dense(32, activation='relu')(xm)
-            xm = tf.keras.layers.Dense(16, activation='relu')(xm)
+            xm = tf.keras.layers.Dense(256, activation='relu')(xm)
+            tf.keras.layers.BatchNormalization()
+            xm = tf.keras.layers.Dense(128, activation='relu')(xm)
             age_output = tf.keras.layers.Dense(1, activation = 'linear')(xm)
-            self._model = model = tf.keras.Model(inputs=[input_img, input_gender], outputs=age_output, name="Age_prediction_model")
+            self._model = tf.keras.Model(inputs=[input_img, input_gender], outputs=age_output, name="Age_prediction_model")
         else:
-            x = tf.keras.layers.Dense(64, activation='relu')(x)
-            x = tf.keras.layers.Dense(32, activation='relu')(x)
-            x = tf.keras.layers.Dense(16, activation='relu')(x)
+            x = tf.keras.layers.Dense(256, activation='relu')(x)
+            tf.keras.layers.BatchNormalization()
+            x = tf.keras.layers.Dense(128, activation='relu')(x)
             age_output = tf.keras.layers.Dense(1, activation = 'linear')(x)
-            self._model = model = tf.keras.Model(inputs=input_img, outputs=age_output, name="Age_prediction_model")
+            self._model = tf.keras.Model(inputs=input_img, outputs=age_output, name="Age_prediction_model")
 
     def __call__(self):
         """

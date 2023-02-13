@@ -12,14 +12,14 @@ import hparams
 import wandb
 
 
-def load_image(img_name):
+def load_image(img_name, img_size=hparams.IMG_SIZE):
 
     if isinstance(img_name, bytes):
         img_name = img_name.decode()
 
     img = cv2.imread(img_name, cv2.IMREAD_COLOR)
     img = np.array(
-        cv2.resize(img, (hparams.IMG_SIZE, hparams.IMG_SIZE)), dtype="float32"
+        cv2.resize(img, (img_size, img_size)), dtype="float32"
     )
 
     return img
@@ -39,14 +39,22 @@ def set_seeds(seed):
     tf.random.set_seed(seed)
     np.random.seed(seed)
 
+def data_augmentation(image):
+    seed = np.random.rand(2) * 4
+    image = tf.image.stateless_random_flip_left_right(image, seed)
+    seed = np.random.rand(2) * 4
+    image = tf.image.stateless_random_flip_up_down(image, seed)
+    return image
 
-def create_dataset_from_file(file_names, gend_array, y_array, use_gender=hparams.GENDER, batch_size = hparams.BATCH_SIZE):
+def create_dataset_from_file(file_names, gend_array, y_array, use_gender=hparams.GENDER, batch_size = hparams.BATCH_SIZE, img_size=hparams.IMG_SIZE):
     # Create a Dataset object
     train_image_data = tf.data.Dataset.from_tensor_slices((file_names))
 
     # Map the load_image function
-    py_func = lambda file_name: (tf.numpy_function(load_image, [file_name], tf.float32))
+    py_func = lambda file_name: (tf.numpy_function(load_image, [file_name, img_size], tf.float32))
     train_image_data = train_image_data.map(py_func, num_parallel_calls=os.cpu_count())
+
+    train_image_data = train_image_data.map(data_augmentation)
 
     # Map the normalize_img function
     generator_dataset = train_image_data.map(

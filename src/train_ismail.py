@@ -26,6 +26,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 # ## HyperParameters
 
 img_size = 256
+IMG_SIZE = 256
 
 # ## Load and Preprocess Input Dataset
 
@@ -154,32 +155,34 @@ mc = ModelCheckpoint(
 
 ## Base Convolution Neural Network (BaseCNN)
 
+print("Running Baseline-CNN")
 with_gender = True
-for i in range(0):
+lr = random_learning_rate()
+batch_size = np.random.choice([32])
+epoch = np.random.choice([2])
+for i in range(2):
     if i == 1:
         with_gender = False
-    lr = random_learning_rate()
-    batch_size = np.random.choice([32])
-    epoch = np.random.choice([100])
 
     # Set Batch Size in the datasets
     if not with_gender:
-        train_dataset = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=False, batch_size=batch_size)
-        valid_dataset = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=False, batch_size=batch_size)
-        test_dataset = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=False, batch_size=batch_size)
+        train_dataset = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=False, batch_size=batch_size, img_size=img_size)
+        valid_dataset = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=False, batch_size=batch_size, img_size=img_size)
+        test_dataset = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=False, batch_size=batch_size, img_size=img_size)
     else:
-        train_dataset_wg = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=True, batch_size=batch_size)
-        valid_dataset_wg = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=True, batch_size=batch_size)
-        test_dataset_wg = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=True, batch_size=batch_size)
+        train_dataset_wg = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=True, batch_size=batch_size, img_size=img_size)
+        valid_dataset_wg = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=True, batch_size=batch_size, img_size=img_size)
+        test_dataset_wg = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=True, batch_size=batch_size, img_size=img_size)
 
     # Weights and Biases run initialization
     run = wandb.init(project="hda-final", 
                     entity="hda-project",  # Entity is my team name on wandb website
-                    name = f"CNN-v2-g-{with_gender}",
+                    name = f"CNN-DA-v2-g-{with_gender}",
                     config = {
-                    "MODEL_NAME": "CNN",
+                    "MODEL_NAME": "CNN-v2",
                     "START_LR": lr,
                     "BATCH_SIZE": batch_size,
+                    "IMG_SIZE": img_size,
                     "GENDER": with_gender
                     })
 
@@ -213,9 +216,10 @@ for i in range(0):
         # predictions on test dataset
         test_mae = tf_dataset_calculate_mae_in_months(test_dataset_wg)
 
-    art = wandb.Artifact(f"model-{run.name}-h5", type="model")
-    art.add_file(f"{run.dir}/model-best.h5")
-    wandb.log_artifact(art)
+    # # wandb automatically saves the model
+    # art = wandb.Artifact(f"model-{run.name}-h5", type="model")
+    # art.add_file(f"{run.dir}/model-best.h5")
+    # wandb.log_artifact(art)
 
     # Log Performance of the test dataset
     wandb.log({"test_mae_in_months": test_mae})
@@ -231,27 +235,28 @@ for i in range(0):
 # ## Inceptionv4 Neural Network (Inv4NN)
 
 with_gender = True
-for i in range(1):
+for i in range(0):
     if i == 1:
         with_gender = False
     lr = random_learning_rate()
-    batch_size = np.random.choice([32])
+    batch_size = np.random.choice([4])
     epoch = np.random.choice([5])
 
     if not with_gender:
         # Set Batch Size in the datasets
-        train_dataset = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=False, batch_size=batch_size)
-        valid_dataset = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=False, batch_size=batch_size)
-        test_dataset = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=False, batch_size=batch_size)
+        train_dataset = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=False, batch_size=batch_size, img_size=img_size)
+        valid_dataset = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=False, batch_size=batch_size, img_size=img_size)
+        test_dataset = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=False, batch_size=batch_size, img_size=img_size)
     else:
-        train_dataset_wg = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=True, batch_size=batch_size)
-        valid_dataset_wg = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=True, batch_size=batch_size)
-        test_dataset_wg = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=True, batch_size=batch_size)
+        train_dataset_wg = create_dataset_from_file(train_df["img_path"], train_df["male"].to_numpy().reshape(-1, 1), train_df["bone_age_z"], use_gender=True, batch_size=batch_size, img_size=img_size)
+        valid_dataset_wg = create_dataset_from_file(valid_df["img_path"], valid_df["male"].to_numpy().reshape(-1, 1), valid_df["bone_age_z"], use_gender=True, batch_size=batch_size, img_size=img_size)
+        test_dataset_wg = create_dataset_from_file(test_df["img_path"], test_df["male"].to_numpy().reshape(-1, 1), test_df["bone_age_z"], use_gender=True, batch_size=batch_size, img_size=img_size)
 
     # Weights and Biases run initialization
     run = wandb.init(project="hda-final", 
                     entity="hda-project",  # Entity is my team name on wandb website
-                    name = f"inv4-v1-g-{with_gender}",
+                    # DA means data augmentation
+                    name = f"inv4-DA-v1-g-{with_gender}",
                     config = {
                     "MODEL_NAME": "Inceptionv4",
                     "START_LR": lr,
@@ -259,7 +264,7 @@ for i in range(1):
                     "GENDER": with_gender
                     })
 
-    callbacks = [red_lr_plat, mc, WandbCallback()]
+    callbacks = [red_lr_plat, WandbCallback()]
 
     optimizer = tf.keras.optimizers.Adam( lr )
 
@@ -287,9 +292,10 @@ for i in range(1):
         # predictions on test dataset
         test_mae = tf_dataset_calculate_mae_in_months(test_dataset_wg)
 
-    art = wandb.Artifact(f"model-{run.name}-h5", type="model")
-    art.add_file(f"{run.dir}/model-best.h5")
-    wandb.log_artifact(art)
+    # # wandb automatically saves the model
+    # art = wandb.Artifact(f"model-{run.name}-h5", type="model")
+    # art.add_file(f"{run.dir}/model-best.h5")
+    # wandb.log_artifact(art)
 
     # Log Performance of the test dataset
     wandb.log({"test_mae_in_months": test_mae})
