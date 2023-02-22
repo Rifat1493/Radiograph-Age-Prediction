@@ -1,28 +1,20 @@
 # Radiograph-Age-Prediction
 
-Project for Predicting Bone age using hand/ wrist Radiographs. 
-
-## Organising Code
-`run_models_ismail.ipynb` - Is a base notebook that runs different model architecture. Ismail's 
-`run_models.ipynb` - Is a base notebook that runs different model architecture. Rifat's 
-
-## Architectures We'll be using
-Without Gender Information
-- Simple Convolutional Neural Network
-- Inception NN (Ismail)
-- Attention NN (Rifat)
-
-With Gender Information
-- Simple Convolutional Neural Network
+## Deep learning regression for predicting bone age from radiograph images
 
 
-### Use of Gender information
-- Simple Convolutional Neural Network
-- Inception NN
-- Attention NN
+Different architectures have been tested here from basic to high level. An implementation of soft attention could be found here. The architectures used are 
+- Baseline CNN
+- CNN with Attention
+- Inception V4
+- Unet
+- Attention Unet
+## Data source
+Follow this [link](https://www.rsna.org/education/ai-resources-and-training/ai-image-challenge/rsna-pediatric-bone-age-challenge-2017) to download the whole dataset.
 
+## Running the Code
+run `train.py` and `train_ismail.py` files. The paths should be adjusted as required. The hyperparameters can be set in `hparams.py` file
 
-# Remove later
-google drive link of the data:
-https://drive.google.com/file/d/1itvXFa5ofUstyV-pZU_Jni7UQMQyTmIi/view
+## Results from our run
+![alt text](figures/mad_months.png)
 
